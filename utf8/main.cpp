@@ -1,10 +1,11 @@
 #include <iostream>
 #include <vector>
 #include <stdio.h>
-#include "my_utf8.h"
 #include <stdexcept>
 #include <wchar.h>
 #include <bitset>
+
+#include "my_utf8.h"
 
 using namespace std;
 
