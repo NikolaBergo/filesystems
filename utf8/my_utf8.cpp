@@ -1,10 +1,11 @@
 #include <iostream>
 #include <vector>
 #include "my_utf8.h"
+#include <bitset>
 
-const uint8_t  to_utf8_error = 0xFF;
-const uint32_t from_utf8_error = 0xFFFFFFFF;
-
+/*
+ * UTF-8 code and decode implementation
+ */
 
 enum byte_masks {
     // leading byte masks depending on UTF-8 bytes quantity
@@ -21,7 +22,7 @@ enum byte_masks {
     four_byte_code_useful  = 0b00000111u,
 
     // non-leading byte masks
-            rest_byte_code         = 0b10000000u,
+    rest_byte_code         = 0b10000000u,
     rest_byte_code_useful  = 0b00111111u,
     rest_byte_useful_size  = 6u,
 };
@@ -47,7 +48,7 @@ int check_bytes_code_num(uint32_t val) {
     if (val <= unicode_to_four_bytes)
         return 4;
 
-    return -to_utf8_error;
+    return -1;
 }
 
 int check_bytes_decode_num(uint8_t val) {
@@ -60,12 +61,10 @@ int check_bytes_decode_num(uint8_t val) {
     if ((val & four_byte_code_lead) == four_byte_code_lead)
         return 4;
 
-    return -from_utf8_error;
+    return -1;
 }
 
-void code_to_utf8(std::vector<uint8_t>& bytes, uint32_t unicode_num) {
-    size_t size = bytes.size();
-
+void code_to_utf8(std::vector<uint8_t>& bytes, size_t size, uint32_t unicode_num) {
     if (size == 1) {
         bytes[0] = one_byte_code_lead |
                    uint8_t(unicode_num & one_byte_code_useful);
@@ -89,12 +88,13 @@ void code_to_utf8(std::vector<uint8_t>& bytes, uint32_t unicode_num) {
                    uint8_t((unicode_num >> rest_byte_useful_size*(size-i-1)) & rest_byte_code_useful);
 }
 
-void decode_from_utf8(std::vector<uint8_t>& bytes, uint32_t& unicode_num) {
+int decode_from_utf8(std::vector<uint8_t>& bytes) {
     size_t size = bytes.size();
+    uint32_t unicode_num = 0;
 
     if (size == 1) {
         unicode_num = uint32_t(bytes[0]);
-        return;
+        return unicode_num;
     }
     else if (size == 2) {
         unicode_num = uint32_t(bytes[0] & two_byte_code_useful) << rest_byte_useful_size*(size-1);
@@ -106,51 +106,64 @@ void decode_from_utf8(std::vector<uint8_t>& bytes, uint32_t& unicode_num) {
         unicode_num = uint32_t(bytes[0] & four_byte_code_useful) << rest_byte_code_useful*(size-1);
     }
 
-    for (int i = 1; i < size; i++)
-        unicode_num |= (uint32_t(bytes[i] & rest_byte_code_useful) << rest_byte_useful_size*(size-i-1));
+    for (int i = 1; i < size; i++) {
+        if ((bytes[i] & rest_byte_code) != rest_byte_code)
+            return -1;
+
+        unicode_num |= (uint32_t(bytes[i] & rest_byte_code_useful) << rest_byte_useful_size * (size - i - 1));
+    }
+
+    return unicode_num;
 }
 
-std::vector<uint8_t> to_utf8(const std::vector<uint32_t>& x) {
+std::pair<std::vector<uint8_t>, int> to_utf8(const std::vector<uint32_t>& x) {
     std::vector<uint8_t> retval;
+    std::vector<uint8_t> bytes(4);
 
-    for (auto item : x) {
-        int bytes_num = check_bytes_code_num(item);
+    for (size_t i = 0; i < x.size(); i++) {
+        int bytes_num = check_bytes_code_num(x[i]);
 
         if (bytes_num < 0) {
-            retval.push_back(to_utf8_error);
+            std::cout << "invalid unicode value input[" << i << "] = " << x[i] << std::endl;
+            return std::pair<std::vector<uint8_t>, int> {retval, -1};
         }
         else {
-            std::vector<uint8_t> bytes(bytes_num);
-            code_to_utf8(bytes, item);
+            code_to_utf8(bytes, bytes_num, x[i]);
 
-            for (auto byte : bytes)
-                retval.push_back(byte);
+            for (size_t j = 0; j < bytes_num; j++) {
+                retval.push_back(bytes[j]);
+            }
         }
     }
 
-    return retval;
+    return std::pair<std::vector<uint8_t>, int> {retval, 0};
 }
 
-std::vector<uint32_t> from_utf8(const std::vector<uint8_t> &x) {
+std::pair<std::vector<uint32_t>, int> from_utf8(const std::vector<uint8_t> &x) {
     std::vector<uint32_t> retval;
+    int err = 0;
     size_t i = 0;
 
     while (i < x.size()) {
         int bytes_num = check_bytes_decode_num(x[i]);
 
         if (bytes_num < 0) {
-            retval.push_back(from_utf8_error);
-            i++;
+            std::cout << "invalid utf8 leading byte: input[" << i << "] = " << x[i] << std::endl;
+            return std::pair<std::vector<uint32_t>, int> {retval, 0};
         }
         else {
             std::vector<uint8_t> bytes(x.begin()+i, x.begin()+i+bytes_num);
-            uint32_t unicode_num = 0;
-            decode_from_utf8(bytes, unicode_num);
-            retval.push_back(unicode_num);
+            int unicode_num = decode_from_utf8(bytes);
+
+            if (unicode_num < 0) {
+                std::cout << "invalid utf8 sequence starting at: input[" << i << "] = " << x[i] << std::endl;
+                return std::pair<std::vector<uint32_t>, int> {retval, -1};
+            }
+            retval.push_back(uint32_t(unicode_num));
             i += bytes_num;
         }
     }
 
-    return retval;
+    return std::pair<std::vector<uint32_t>, int> {retval, 0};
 }
 
