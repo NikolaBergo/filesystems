@@ -4,7 +4,6 @@
 #include <string.h>
 #include <dirent.h>
 #include <stdlib.h>
-#define MAX_CMD_LEN 512
 
 /*
  * Implementation of ps command with 2 options:
@@ -14,7 +13,7 @@
  
 struct proc_stat {
 	int pid;
-	char comm[MAX_CMD_LEN];
+	char comm[PATH_MAX];
 	char state;
 	int ppid;
 	int group_id;
@@ -58,7 +57,7 @@ int read_process(const char *pid, proc_stat *this_proc)
 
 void print_proc(proc_stat *proc) 
 {
-	char format_cmd[100] = {};
+	char format_cmd[PATH_MAX] = {};
 	for (int i = 1; i < strlen(proc->comm) - 1; i++)
 		format_cmd[i-1] = proc->comm[i];
 	
@@ -77,7 +76,12 @@ int main(int argc, char** argv)
 	struct dirent *dir;
 	int tty = 0;
 	int err = 0;
+	
 	d = opendir("/proc/");
+	if (d == NULL) {
+		printf("Can't open dir /proc");
+		return -1;
+	}
 	
 	// by default ps prints all processes of the same tty
 	if (argc == 1) {
