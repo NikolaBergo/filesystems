@@ -56,7 +56,8 @@ int read_process(const char *pid, proc_stat *this_proc)
 	return 0;
 }
 
-void print_proc(proc_stat *proc) {
+void print_proc(proc_stat *proc) 
+{
 	char format_cmd[100] = {};
 	for (int i = 1; i < strlen(proc->comm) - 1; i++)
 		format_cmd[i-1] = proc->comm[i];
