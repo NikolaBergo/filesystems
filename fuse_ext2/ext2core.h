@@ -1,6 +1,16 @@
 #ifndef __EXT2CORE_H
 #define __EXT2CORE_H
 
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -16,6 +26,25 @@
 
 #define SB_OFFSET 1024
 
+#define FIFO 0x1000
+#define CHAR_DEV 0x2000
+#define Directory 0x4000
+#define Block device 0x6000
+#define Regular file 0x8000
+0xA000	Symbolic link
+0xC000	Unix socke
+
+struct ext2 {
+    int blocksize;
+    int blocks_per_group;
+    int inodes_per_group;
+    int inode_size;
+    int img_fd;
+    ext2_sb *first_sb;
+    ext2_inode *root;
+};
+
+typedef struct ext2 ext2;
 
 struct ext2_sb {
 	__u32	inodes_count;		/* Inodes count */
@@ -162,6 +191,7 @@ struct ext2_dir_entry {
 	__le16	name_len;		/* Name length */
 	char	name[];			/* File name, up to EXT2_NAME_LEN */
 };
+
 typedef struct ext2_dir_entry ext2_dir_entry;
 
  

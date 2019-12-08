@@ -19,18 +19,19 @@ static int ext2_getattr(const char *path, struct stat *st)
 	st->st_gid = getgid();
 	st->st_atime = time(NULL);
 	st->st_mtime = time(NULL);
+	// allow only for reading
+	st->st_mode = S_IRUSR | S_IRGRP | S_IROTH;
 	
-	//inode = find_file();
-	//memset(stbuf, 0, sizeof(struct stat));
-	//if (strcmp(path, "/") == 0) {
-	//	stbuf->st_mode = S_IFDIR | 0755;
-	//	stbuf->st_nlink = 2;
-	//} else if (strcmp(path, hello_path) == 0) {
-	//	stbuf->st_mode = S_IFREG | 0444;
-	//	stbuf->st_nlink = 1;
-	//	stbuf->st_size = strlen(hello_str);
-	//} else
-	//	res = -ENOENT;
+	ext2_inode *inode = find_file(path);
+	if (inode == NULL) {
+	    printf("failed to get attr\n")
+	    return -ENOENT;
+	}
+
+	// disable original access flags
+	st->st_mode |= ((inode->i_mode >> 8) << 8);
+	st->st_nlink = inode->i_links_count;
+	st->st_size = inode->i_size;
 
 	return res;
 }
@@ -40,7 +41,6 @@ static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 {
 	if (strcmp(path, "/") != 0)
 		return -ENOENT;
-
 	
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
@@ -54,9 +54,6 @@ static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int ext2_open(const char *path, struct fuse_file_info *fi)
 {
-	//if (strcmp(path, hello_path) != 0)
-	//	return -ENOENT;
-
 	if ((fi->flags & 3) != O_RDONLY)
 		return -EACCES;
 
