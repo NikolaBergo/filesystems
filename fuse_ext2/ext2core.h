@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <linux/types.h>
 
 #define __u32 uint32_t
 #define __u16 uint16_t
@@ -85,9 +86,85 @@ struct ext2_sb {
 
 typedef struct ext2_sb ext2_sb;
 
-struct ext2_inode {
-
+struct ext2_group_desc
+{
+	__le32	bg_block_bitmap;		/* Blocks bitmap block */
+	__le32	bg_inode_bitmap;		/* Inodes bitmap block */
+	__le32	bg_inode_table;		/* Inodes table block */
+	__le16	bg_free_blocks_count;	/* Free blocks count */
+	__le16	bg_free_inodes_count;	/* Free inodes count */
+	__le16	bg_used_dirs_count;	/* Directories count */
+	__le16	bg_pad;
+	__le32	bg_reserved[3];
 };
+
+typedef struct ext2_group_desc ext2_group_desc;
+
+struct ext2_inode {
+	__le16	i_mode;		/* File mode */
+	__le16	i_uid;		/* Low 16 bits of Owner Uid */
+	__le32	i_size;		/* Size in bytes */
+	__le32	i_atime;	/* Access time */
+	__le32	i_ctime;	/* Creation time */
+	__le32	i_mtime;	/* Modification time */
+	__le32	i_dtime;	/* Deletion Time */
+	__le16	i_gid;		/* Low 16 bits of Group Id */
+	__le16	i_links_count;	/* Links count */
+	__le32	i_blocks;	/* Blocks count */
+	__le32	i_flags;	/* File flags */
+	union {
+		struct {
+			__le32  l_i_reserved1;
+		} linux1;
+		struct {
+			__le32  h_i_translator;
+		} hurd1;
+		struct {
+			__le32  m_i_reserved1;
+		} masix1;
+	} osd1;				/* OS dependent 1 */
+	__le32	i_block[15];/* Pointers to blocks */
+	__le32	i_generation;	/* File version (for NFS) */
+	__le32	i_file_acl;	/* File ACL */
+	__le32	i_dir_acl;	/* Directory ACL */
+	__le32	i_faddr;	/* Fragment address */
+	union {
+		struct {
+			__u8	l_i_frag;	/* Fragment number */
+			__u8	l_i_fsize;	/* Fragment size */
+			__u16	i_pad1;
+			__le16	l_i_uid_high;	/* these 2 fields    */
+			__le16	l_i_gid_high;	/* were reserved2[0] */
+			__u32	l_i_reserved2;
+		} linux2;
+		struct {
+			__u8	h_i_frag;	/* Fragment number */
+			__u8	h_i_fsize;	/* Fragment size */
+			__le16	h_i_mode_high;
+			__le16	h_i_uid_high;
+			__le16	h_i_gid_high;
+			__le32	h_i_author;
+		} hurd2;
+		struct {
+			__u8	m_i_frag;	/* Fragment number */
+			__u8	m_i_fsize;	/* Fragment size */
+			__u16	m_pad1;
+			__u32	m_i_reserved2[2];
+		} masix2;
+	} osd2;				/* OS dependent 2 */
+};
+
+typedef struct ext2_inode ext2_inode;
+
+struct ext2_dir_entry {
+	__le32	inode;			/* Inode number */
+	__le16	rec_len;		/* Directory entry length */
+	__le16	name_len;		/* Name length */
+	char	name[];			/* File name, up to EXT2_NAME_LEN */
+};
+typedef struct ext2_dir_entry ext2_dir_entry;
+
+ 
 
 
 void ext2_core_init(int img_fd);
