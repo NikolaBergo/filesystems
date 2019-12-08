@@ -106,7 +106,9 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	init_ext2_core(img_fd);
+	int err = init_ext2_core(img_fd);
+	if (err < 0)
+	    return -1;
 	
 	return fuse_main(argc - 1, argv, &ext2_op, NULL);
 }
