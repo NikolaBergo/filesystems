@@ -26,24 +26,6 @@
 
 #define SB_OFFSET 1024
 
-#define FIFO 0x1000
-#define CHAR_DEV 0x2000
-#define Directory 0x4000
-#define Block device 0x6000
-#define Regular file 0x8000
-0xA000	Symbolic link
-0xC000	Unix socke
-
-struct ext2 {
-    int blocksize;
-    int blocks_per_group;
-    int inodes_per_group;
-    int inode_size;
-    int img_fd;
-    ext2_sb *first_sb;
-    ext2_inode *root;
-};
-
 typedef struct ext2 ext2;
 
 struct ext2_sb {
@@ -188,15 +170,24 @@ typedef struct ext2_inode ext2_inode;
 struct ext2_dir_entry {
 	__le32	inode;			/* Inode number */
 	__le16	rec_len;		/* Directory entry length */
-	__le16	name_len;		/* Name length */
+	__u8	name_len;
+	__u8    file_type;
 	char	name[];			/* File name, up to EXT2_NAME_LEN */
 };
 
 typedef struct ext2_dir_entry ext2_dir_entry;
 
- 
+struct ext2 {
+    int blocksize;
+    int blocks_per_group;
+    int inodes_per_group;
+    int inode_size;
+    int img_fd;
+	int inode_table_offset;
+    ext2_sb *first_sb;
+    ext2_inode *root;
+};
 
-
-void ext2_core_init(int img_fd);
+typedef struct ext2 ext2;
 
 #endif
