@@ -54,19 +54,6 @@ struct ext2_sb {
 	__u32	rev_level;		/* Revision level */
 	__u16	def_resuid;		/* Default uid for reserved blocks */
 	__u16	def_resgid;		/* Default gid for reserved blocks */
-	/*
-	 * These fields are for EXT2_DYNAMIC_REV superblocks only.
-	 *
-	 * Note: the difference between the compatible feature set and
-	 * the incompatible feature set is that if there is a bit set
-	 * in the incompatible feature set that the kernel doesn't
-	 * know about, it should refuse to mount the filesystem.
-	 * 
-	 * e2fsck's requirements are more strict; if it doesn't know
-	 * about a feature in either the compatible or incompatible
-	 * feature set, it must abort and not try to meddle with
-	 * things it doesn't understand...
-	 */
 	__u32	first_ino; 		/* First non-reserved inode */
 	__u16   inode_size; 		/* size of inode structure */
 	__u16	block_group_nr; 	/* block group # of this superblock */

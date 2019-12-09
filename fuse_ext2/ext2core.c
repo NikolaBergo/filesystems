@@ -37,28 +37,24 @@ int init_ext2_core(int img_fd)
 
 	ext2_inode *root = (ext2_inode*) calloc(1, sizeof(ext2_inode));
 	// root inode has index = 1
-	int offset = bgroup.bg_inode_table*(fs->blocksize)+1*fs->inode_size;
-	lseek(img_fd, offset, SEEK_SET);
+	int offset = bgroup.bg_inode_table*(fs->blocksize);
+	lseek(img_fd, offset + 1*fs->inode_size, SEEK_SET);
 	n = read(img_fd, root, sizeof(ext2_inode));
 	if (n <= 0) {
 		fprintf(stderr, "init failed\n");
 		return -1;
 	}
+	
 
 	fs->root = root;
 	fs->img_fd = img_fd;
 	fs->inode_table_offset = offset;
-	
-	//ext2_inode* found = find_file("/1/file.01\n");
-	//if (found)
-	//	printf("number %d\n", S_ISREG(found->i_mode));
 
 	return 0;
 }
 
 ext2_inode* read_inode(int inonum)
 {
-    int bgroup_num = (inonum - 1) / fs->inodes_per_group;
     int index = (inonum - 1) % fs->inodes_per_group;
     ext2_inode *ret = (ext2_inode*) calloc(1, sizeof(ext2_inode));
     lseek(fs->img_fd, fs->inode_table_offset+index*fs->inode_size, SEEK_SET);
@@ -73,29 +69,30 @@ ext2_inode* find_file(const char *path)
         return fs->root;
 
 	char new_path[256];
-    ext2_inode *found = (ext2_inode*) calloc(1, sizeof(ext2_inode));
     // skip leading '/'
     snprintf(new_path, strlen(path), "%s", path+1);
 
-    found = search_file(fs->root, new_path);
-    return found;
+    return search_file(fs->root, new_path);
 }
 
 ext2_inode* search_file(ext2_inode* root, const char *path)
 {
-	fprintf(stderr, "search file: %s\n", path);
-    char name[256];
-    char new_path[256];
+	fprintf(stderr, "search file: %s   <----\n", path);
+    char name[256] = {};
+    char new_path[256] = {};
+	int last_step = 0;
     int i = 0;
     
-    while (path[i] != '/') {
+    while ((path[i] != '/') && (path[i] != 0)) {
         name[i] = path[i];
         i++;
     }
-    name[i] = '\0';
-    if (strcmp(name, path) == 0)
-        return root;
-
+    
+	name[i] = 0;
+	if (path[i] == 0) {
+		last_step = 1;
+	}
+	
     if (S_ISDIR(root->i_mode)) {
         int n = 0;
         int name_len = 0;
@@ -122,14 +119,18 @@ ext2_inode* search_file(ext2_inode* root, const char *path)
 				offset += entry.rec_len;
 				
 				if (strcmp(read_name, name) == 0) {
-					snprintf(new_path, strlen(path), "%s", path + strlen(name) + 1);
 					int inonum = entry.inode;
 					ext2_inode *found = read_inode(inonum);
 					if (found == NULL) {
 						fprintf(stderr, "didn't find inode\n");
 						return NULL;
 					}
-
+					
+					snprintf(new_path, strlen(path), "%s", path + strlen(name) + 1);
+					// it means that the search is over
+					if (last_step)
+						return found;
+					
 					return search_file(found, new_path);
 				}
 			}
@@ -143,24 +144,25 @@ ext2_inode* search_file(ext2_inode* root, const char *path)
 char** list_dir(const char *path)
 {
     ext2_inode *dir = find_file(path);
-    if (found == NULL)
+    if (dir == NULL)
         return NULL;
 
-    if (!S_ISDIR(dir->mode))
+    if (!S_ISDIR(dir->i_mode))
         return NULL;
 
-    char** dirs = calloc(DIR_CAPACITY, sizeof(char*));
+    char** dirs = (char**) calloc(DIR_CAPACITY, sizeof(char*));
     if (dirs == NULL)
         return NULL;
-    int dir_count = 0;
+		
     for (int i = 0; i < DIR_CAPACITY; i++) {
-        dirs[i] = calloc(256, sizeof(char));
+        dirs[i] = (char*) calloc(256, sizeof(char));
         if (dirs[i] == NULL)
             return NULL;
     }
 
     int name_len = 0;
     int blk_num = 0;
+	unsigned int dir_count = 0;
     ext2_dir_entry entry;
 
     for (int i = 0; i < 13; i++) {
@@ -183,8 +185,8 @@ char** list_dir(const char *path)
             read(fs->img_fd, name, entry.name_len);
             offset += entry.rec_len;
 
-            dirs[dir_count] = name;
-            dir_count ++;
+            strcpy(dirs[dir_count], name);
+            dir_count += 1;
 
             if (dir_count % DIR_CAPACITY == 0) {
                 dirs = (char**) realloc(dirs, dir_count + DIR_CAPACITY);
@@ -201,7 +203,8 @@ char** list_dir(const char *path)
 
         }
     }
-
+	
+	dirs[dir_count] = NULL;
     return dirs;
 }
 

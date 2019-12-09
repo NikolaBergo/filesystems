@@ -14,10 +14,12 @@ static int img_fd;
 
 static int ext2_getattr(const char *path, struct stat *st)
 {
+	fprintf(stderr, "GET_ATTR\n");
 	st->st_uid = getuid();
 	st->st_gid = getgid();
 	st->st_atime = time(NULL);
 	st->st_mtime = time(NULL);
+	
 	// allow only for reading
 	st->st_mode = S_IRUSR | S_IRGRP | S_IROTH;
 	
@@ -28,7 +30,7 @@ static int ext2_getattr(const char *path, struct stat *st)
 	}
 
 	// disable original access flags
-	st->st_mode |= ((inode->i_mode >> 8) << 8);
+	st->st_mode |= (inode->i_mode >> 12 << 12);
 	st->st_nlink = inode->i_links_count;
 	st->st_size = inode->i_size;
 
@@ -38,10 +40,12 @@ static int ext2_getattr(const char *path, struct stat *st)
 static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			            off_t offset, struct fuse_file_info *fi)
 {
-	dirs = list_dir(path);
+	fprintf(stderr, "READ_DIR %s\n", path);
+	char **dirs = list_dir(path);
+
 	if (dirs == NULL)
 	    return -EFAULT;
-
+		
 	int i = 0;
 	while (dirs[i]) {
         filler(buf, dirs[i], NULL, 0);
@@ -53,12 +57,14 @@ static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int ext2_opendir(const char *path, struct fuse_file_info *fi)
 {
+	fprintf(stderr, "OPENDIR\n");
     return 0;
 }
 
 
 static int ext2_open(const char *path, struct fuse_file_info *fi)
 {
+	fprintf(stderr, "OPEN\n");
 	if ((fi->flags & 3) != O_RDONLY)
 		return -EACCES;
 
@@ -78,7 +84,7 @@ static int ext2_release(const char *path, struct fuse_file_info *fi)
     return 0;
 }
 
-static int ext2_release_dir(const char *path, struct fuse_file_info *fi)
+static int ext2_releasedir(const char *path, struct fuse_file_info *fi)
 {
     return 0;
 }
@@ -88,9 +94,9 @@ static struct fuse_operations ext2_op = {
 	.readdir	= ext2_readdir,
 	.open		= ext2_open,
 	.read		= ext2_read,
-	.open_dir   = ext2_opendir,
+	.opendir    = ext2_opendir,
 	.release    = ext2_release,
-	.release_dir = ext2_release_dir
+	.releasedir = ext2_releasedir
 };
 
 int main(int argc, char *argv[])
@@ -100,12 +106,12 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	if (argc > 3) {
-		printf("too many arguments!\n");
-		return -1;
-	}
+	//if (argc > 3) {
+	//	printf("too many arguments!\n");
+	//	return -1;
+	//}
 	
-	img_fd = open(argv[2], O_RDONLY);
+	img_fd = open(argv[argc-1], O_RDONLY);
 	fsync(img_fd);
 	if (img_fd < 0) {
 		printf("failed to open image file\n");
