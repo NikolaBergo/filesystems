@@ -30,16 +30,18 @@ int init_ext2_core(int img_fd)
 
 	// read first block group header
 	ext2_group_desc bgroup;
-	lseek(img_fd, fs->first_sb->first_data_block + fs->blocksize, SEEK_SET);
+	lseek(img_fd, (fs->first_sb->first_data_block + 1) * fs->blocksize, SEEK_SET);
 	n = read(img_fd, &bgroup, sizeof(ext2_group_desc));
 	if (n <= 0) {
 		fprintf(debug, "init failed\n");
 		return -1;
 	}
+	printf("ino table %d\n", bgroup.bg_inode_table);
 
 	ext2_inode *root = (ext2_inode*) calloc(1, sizeof(ext2_inode));
 	// root inode has index = 1
 	int offset = bgroup.bg_inode_table*(fs->blocksize)+1*fs->inode_size;
+	printf("inode table: %d\n", bgroup.bg_inode_table );
 	lseek(img_fd, offset, SEEK_SET);
 	n = read(img_fd, root, sizeof(ext2_inode));
 	if (n <= 0) {
@@ -51,7 +53,7 @@ int init_ext2_core(int img_fd)
 	fs->img_fd = img_fd;
 	fs->inode_table_offset = offset;
 	
-	ext2_inode* found = find_file("/1/hello\n");
+	ext2_inode* found = find_file("/1/file.01\n");
 	if (found)
 		printf("number %d\n", S_ISREG(found->i_mode));
 
