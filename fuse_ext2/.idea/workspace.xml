@@ -12,7 +12,6 @@
     <list default="true" id="f143c944-09eb-453e-8981-e932dc7d792c" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ext2core.c" beforeDir="false" afterPath="$PROJECT_DIR$/ext2core.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ext2core.h" beforeDir="false" afterPath="$PROJECT_DIR$/ext2core.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fusecore.c" beforeDir="false" afterPath="$PROJECT_DIR$/fusecore.c" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -29,10 +28,14 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ext2core.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="63" selection-start-line="63" selection-end-line="63" />
+            <state relative-caret-position="272">
+              <caret line="83" column="59" selection-start-line="83" selection-start-column="59" selection-end-line="83" selection-end-column="59" />
               <folding>
-                <element signature="e#174#1295#0" />
+                <element signature="e#158#1613#0" />
+                <element signature="e#1615#1973#0" />
+                <element signature="e#1975#2347#0" />
+                <element signature="e#2349#4188#0" />
+                <element signature="e#3611#5522#0" />
               </folding>
             </state>
           </provider>
@@ -41,12 +44,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ext2core.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-555">
-              <caret line="15" column="18" lean-forward="true" selection-start-line="15" selection-start-column="18" selection-end-line="15" selection-end-column="18" />
-              <folding>
-                <element signature="e#302#322#1" />
-                <element signature="e#303#3133#1" />
-              </folding>
+            <state relative-caret-position="255">
+              <caret line="15" column="18" selection-start-line="15" selection-start-column="18" selection-end-line="15" selection-end-column="18" />
             </state>
           </provider>
         </entry>
@@ -54,8 +53,17 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/fusecore.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="226">
-              <caret line="43" column="4" lean-forward="true" selection-start-line="43" selection-start-column="4" selection-end-line="43" selection-end-column="4" />
+            <state relative-caret-position="570">
+              <caret line="92" column="35" selection-start-line="92" selection-start-column="35" selection-end-line="92" selection-end-column="35" />
+              <folding>
+                <element signature="e#232#799#0" />
+                <element signature="e#763#1067#0" />
+                <element signature="e#1067#1139#0" />
+                <element signature="e#1142#1275#0" />
+                <element signature="e#1349#1748#0" />
+                <element signature="e#1433#1505#0" />
+                <element signature="e#1521#1607#0" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -133,12 +141,12 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1575813515232</updated>
-      <workItem from="1575813518172" duration="7035000" />
+      <workItem from="1575813518172" duration="10591000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="7035000" />
+    <option name="totallyTimeSpent" value="10591000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1280" height="800" extended-state="0" />
@@ -167,29 +175,38 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/ext2core.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-555">
-          <caret line="15" column="18" lean-forward="true" selection-start-line="15" selection-start-column="18" selection-end-line="15" selection-end-column="18" />
-          <folding>
-            <element signature="e#302#322#1" />
-            <element signature="e#303#3133#1" />
-          </folding>
+        <state relative-caret-position="255">
+          <caret line="15" column="18" selection-start-line="15" selection-start-column="18" selection-end-line="15" selection-end-column="18" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ext2core.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="63" selection-start-line="63" selection-end-line="63" />
+        <state relative-caret-position="272">
+          <caret line="83" column="59" selection-start-line="83" selection-start-column="59" selection-end-line="83" selection-end-column="59" />
           <folding>
-            <element signature="e#174#1295#0" />
+            <element signature="e#158#1613#0" />
+            <element signature="e#1615#1973#0" />
+            <element signature="e#1975#2347#0" />
+            <element signature="e#2349#4188#0" />
+            <element signature="e#3611#5522#0" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/fusecore.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="226">
-          <caret line="43" column="4" lean-forward="true" selection-start-line="43" selection-start-column="4" selection-end-line="43" selection-end-column="4" />
+        <state relative-caret-position="570">
+          <caret line="92" column="35" selection-start-line="92" selection-start-column="35" selection-end-line="92" selection-end-column="35" />
+          <folding>
+            <element signature="e#232#799#0" />
+            <element signature="e#763#1067#0" />
+            <element signature="e#1067#1139#0" />
+            <element signature="e#1142#1275#0" />
+            <element signature="e#1349#1748#0" />
+            <element signature="e#1433#1505#0" />
+            <element signature="e#1521#1607#0" />
+          </folding>
         </state>
       </provider>
     </entry>

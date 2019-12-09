@@ -14,8 +14,6 @@ static int img_fd;
 
 static int ext2_getattr(const char *path, struct stat *st)
 {
-	fprintf(debug, "get_attr\n");
-	int res = 0;
 	st->st_uid = getuid();
 	st->st_gid = getgid();
 	st->st_atime = time(NULL);
@@ -25,7 +23,7 @@ static int ext2_getattr(const char *path, struct stat *st)
 	
 	ext2_inode *inode = find_file(path);
 	if (inode == NULL) {
-	    printf("failed to get attr\n");
+	    fprintf(stderr, "failed to get attr\n");
 	    return -ENOENT;
 	}
 
@@ -34,29 +32,33 @@ static int ext2_getattr(const char *path, struct stat *st)
 	st->st_nlink = inode->i_links_count;
 	st->st_size = inode->i_size;
 
-	return res;
+	return 0;
 }
 
 static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-			 off_t offset, struct fuse_file_info *fi)
+			            off_t offset, struct fuse_file_info *fi)
 {
-	fprintf(stderr, "read_dir\n");
-	if (strcmp(path, "/") != 0)
-		return -ENOENT;
-	
-	filler(buf, ".", NULL, 0);
-	filler(buf, "..", NULL, 0);
-	//filler(buf, hello_path + 1, NULL, 0);
+	dirs = list_dir(path);
+	if (dirs == NULL)
+	    return -EFAULT;
+
+	int i = 0;
+	while (dirs[i]) {
+        filler(buf, dirs[i], NULL, 0);
+        i++;
+    }
 
 	return 0;
 }
 
-//static int ext2_opendir(const char *, struct fuse_file_info *)
+static int ext2_opendir(const char *path, struct fuse_file_info *fi)
+{
+    return 0;
+}
 
 
 static int ext2_open(const char *path, struct fuse_file_info *fi)
 {
-	fprintf(stderr, "open\n");
 	if ((fi->flags & 3) != O_RDONLY)
 		return -EACCES;
 
@@ -66,20 +68,19 @@ static int ext2_open(const char *path, struct fuse_file_info *fi)
 static int ext2_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
-	fprintf(stderr, "read\n");
 	size_t len;
-	//if (strcmp(path, hello_path) != 0)
-	//	return -ENOENT;
-
-	//len = strlen(hello_str);
-	//f (offset < len) {
-	//	if (offset + size > len)
-	//		size = len - offset;
-	//	memcpy(buf, hello_str + offset, size);
-	//} else
-	//	size = 0;
 
 	return 0;
+}
+
+static int ext2_release(const char *path, struct fuse_file_info *fi)
+{
+    return 0;
+}
+
+static int ext2_release_dir(const char *path, struct fuse_file_info *fi)
+{
+    return 0;
 }
 
 static struct fuse_operations ext2_op = {
@@ -87,6 +88,9 @@ static struct fuse_operations ext2_op = {
 	.readdir	= ext2_readdir,
 	.open		= ext2_open,
 	.read		= ext2_read,
+	.open_dir   = ext2_opendir,
+	.release    = ext2_release,
+	.release_dir = ext2_release_dir
 };
 
 int main(int argc, char *argv[])
