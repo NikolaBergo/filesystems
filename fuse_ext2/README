@@ -1,0 +1,8 @@
+how to compile:
+ $gcc fusecore.c 'pkg-config fuse --cflags --libs'
+
+how to run:
+ $./a.out $MOUNT_POINT $TEST_IMG
+
+when you're tired of using it, simply
+ $sudo umount $MOUNT_POINT
