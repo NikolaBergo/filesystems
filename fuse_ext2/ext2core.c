@@ -6,6 +6,7 @@ static ext2 *fs;
 
 ext2_inode* search_file(ext2_inode* root, const char *path);
 ext2_inode* find_file(const char *path);
+size_t read(ext2_inode *inode, char *buf, size_t size, off_t offset);
 
 // initialize fs struct
 int init_ext2_core(int img_fd) 
@@ -92,49 +93,50 @@ ext2_inode* search_file(ext2_inode* root, const char *path)
 	if (path[i] == 0) {
 		last_step = 1;
 	}
-	
-    if (S_ISDIR(root->i_mode)) {
-        int n = 0;
-        int name_len = 0;
-        int blk_num = 0;
-        ext2_dir_entry entry;
 
-        for (int i = 0; i < 13; i++) {
-            blk_num = root->i_block[i];
-            if (blk_num == 0)
-                return NULL;
+	if (!S_ISDIR(root->i_mode))
+	    return NULL;
+
+	int n = 0;
+	int name_len = 0;
+	int blk_num = 0;
+	ext2_dir_entry entry;
+
+	for (int i = 0; i < 13; i++) {
+	    blk_num = root->i_block[i];
+	    if (blk_num == 0)
+	        return NULL;
 			
-			int offset = 0;
-			while (offset < fs->blocksize) {
-				char read_name[256] = {};
-				lseek(fs->img_fd, blk_num*fs->blocksize + offset, SEEK_SET);
-				read(fs->img_fd, &entry.inode, 4);
-				if (entry.inode == 0) {
-					break;
-				}
-				read(fs->img_fd, &entry.rec_len, 2);
-				read(fs->img_fd, &entry.name_len, 1);
-				read(fs->img_fd, &entry.file_type, 1);
-				read(fs->img_fd, read_name, entry.name_len);
-				offset += entry.rec_len;
-				
-				if (strcmp(read_name, name) == 0) {
-					int inonum = entry.inode;
-					ext2_inode *found = read_inode(inonum);
-					if (found == NULL) {
-						fprintf(stderr, "didn't find inode\n");
-						return NULL;
-					}
+	    int offset = 0;
+	    while (offset < fs->blocksize) {
+	        char read_name[256] = {};
+	        lseek(fs->img_fd, blk_num*fs->blocksize + offset, SEEK_SET);
+	        read(fs->img_fd, &entry.inode, 4);
+	        if (entry.inode == 0) {
+	            break;
+	        }
+	        read(fs->img_fd, &entry.rec_len, 2);
+	        read(fs->img_fd, &entry.name_len, 1);
+	        read(fs->img_fd, &entry.file_type, 1);
+	        read(fs->img_fd, read_name, entry.name_len);
+	        offset += entry.rec_len;
+
+	        if (strcmp(read_name, name) == 0) {
+	            int inonum = entry.inode;
+	            ext2_inode *found = read_inode(inonum);
+	            if (found == NULL) {
+	                fprintf(stderr, "didn't find inode\n");
+	                return NULL;
+	            }
 					
-					snprintf(new_path, strlen(path), "%s", path + strlen(name) + 1);
-					// it means that the search is over
-					if (last_step)
-						return found;
+	            snprintf(new_path, strlen(path), "%s", path + strlen(name) + 1);
+	            // it means that the search is over
+	            if (last_step)
+	                return found;
 					
-					return search_file(found, new_path);
-				}
-			}
-		}
+	            return search_file(found, new_path);
+	        }
+	    }
 	}
 
 	// TBD: indirect blocks search
@@ -206,6 +208,30 @@ char** list_dir(const char *path)
 	
 	dirs[dir_count] = NULL;
     return dirs;
+}
+
+size_t read(ext2_inode *inode, char *buf, size_t size, off_t offset)
+{
+    int block_index = offset / fs->blocksize;
+    int n = 0;
+    if (block_index > 12)
+        return 0;
+
+    int block_off = offset % fs->blocksize;
+    int abs_off = inode->i_block[block_index] * fs->blocksize + block_off;
+
+    while (size > 0) {
+        int need = size;
+        if (size > fs->blocksize) {
+            need = fs->blocksize - block_off;
+        }
+        lseek(fs->img_fd, abs_off, SEEK_SET);
+        n += read(fs->img_fd, buf, need);
+        block_off = 0;
+        size -= need;
+    }
+
+    return n;
 }
 
 

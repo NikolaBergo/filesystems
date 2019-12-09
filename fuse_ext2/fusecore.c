@@ -72,11 +72,17 @@ static int ext2_open(const char *path, struct fuse_file_info *fi)
 }
 
 static int ext2_read(const char *path, char *buf, size_t size, off_t offset,
-		      struct fuse_file_info *fi)
+		             struct fuse_file_info *fi)
 {
-	size_t len;
+	size_t n;
 
-	return 0;
+    ext2_inode *inode = find_file(path);
+    if (inode == NULL)
+        return -ENOENT;
+
+    n = read(inode, buf, size, offset);
+
+	return n;
 }
 
 static int ext2_release(const char *path, struct fuse_file_info *fi)
@@ -105,11 +111,6 @@ int main(int argc, char *argv[])
 		printf("too few arguments!\n");
 		return -1;
 	}
-	
-	//if (argc > 3) {
-	//	printf("too many arguments!\n");
-	//	return -1;
-	//}
 	
 	img_fd = open(argv[argc-1], O_RDONLY);
 	fsync(img_fd);
