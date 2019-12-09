@@ -6,7 +6,7 @@ static ext2 *fs;
 
 ext2_inode* search_file(ext2_inode* root, const char *path);
 ext2_inode* find_file(const char *path);
-size_t read(ext2_inode *inode, char *buf, size_t size, off_t offset);
+size_t read_from(ext2_inode *inode, char *buf, size_t size, off_t offset);
 
 // initialize fs struct
 int init_ext2_core(int img_fd) 
@@ -210,7 +210,7 @@ char** list_dir(const char *path)
     return dirs;
 }
 
-size_t read(ext2_inode *inode, char *buf, size_t size, off_t offset)
+size_t read_from(ext2_inode *inode, char *buf, size_t size, off_t offset)
 {
     int block_index = offset / fs->blocksize;
     int n = 0;

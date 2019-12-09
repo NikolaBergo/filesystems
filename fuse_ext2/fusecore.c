@@ -80,7 +80,7 @@ static int ext2_read(const char *path, char *buf, size_t size, off_t offset,
     if (inode == NULL)
         return -ENOENT;
 
-    n = read(inode, buf, size, offset);
+    n = read_from(inode, buf, size, offset);
 
 	return n;
 }
