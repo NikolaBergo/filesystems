@@ -29,14 +29,15 @@ static int ext2_getattr(const char *path, struct stat *st)
 	
 	// allow only for reading
 	st->st_mode = S_IRUSR | S_IRGRP | S_IROTH;
-
+	
+	fprintf(stderr, "GET_ATTR find file %s\n", path);
 	ext2_inode *inode = find_file(path);
 	if (inode == NULL) {
 	    fprintf(stderr, "failed to get attr\n");
 	    return -ENOENT;
 	}
     if (inode == (ext2_inode*)-1) {
-        fprintf(stderr, "failed to get attr\n");
+        fprintf(stderr, "failed not dir\n");
         return -ENOTDIR;
     }
 
@@ -56,6 +57,7 @@ static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         return -ERANGE;
 
 	char **dirs = list_dir(path);
+	fprintf(stderr, "Return from listdir %s\n", path);
 
 	if (dirs == NULL)
 	    return -EFAULT;

@@ -5,7 +5,7 @@
 #define MAX_PATH_LEN 255
 
 static ext2 *fs;
-static void *pointers;
+void **pointers;
 static int pointers_count = 0;
 
 ext2_inode* search_file(ext2_inode* root, const char *path);
@@ -83,6 +83,8 @@ void release_resources()
 	for (int i = 0; i < pointers_count; i++) {
 	    free(pointers[i]);
 	}
+	
+	free(pointers);
 }
 
 ext2_inode* read_inode(int inonum)
@@ -93,7 +95,7 @@ ext2_inode* read_inode(int inonum)
         return ret;
     }
 
-    add_pointer((void*)ret);
+    add_pointer(ret);
     lseek(fs->img_fd, fs->inode_table_offset+index*fs->inode_size, SEEK_SET);
     read(fs->img_fd, ret, sizeof(ext2_inode));
     return ret;
@@ -189,13 +191,14 @@ char** list_dir(const char *path)
     char** dirs = (char**) calloc(DIR_CAPACITY, sizeof(char*));
     if (dirs == NULL)
         return NULL;
-    add_pointer((void*)dirs);
-		
+    add_pointer(dirs);
+	
     for (int i = 0; i < DIR_CAPACITY; i++) {
-        dirs[i] = (char*) calloc(256, sizeof(char));
+        dirs[i] = (char*) calloc(MAX_PATH_LEN+1, sizeof(char));
         if (dirs[i] == NULL)
             return NULL;
-        add_pointer((void*)dirs[i]);
+		
+        //add_pointer(dirs[i]);
     }
 
     int name_len = 0;
@@ -211,16 +214,14 @@ char** list_dir(const char *path)
         int offset = 0;
         while (offset < fs->blocksize) {
             char name[256] = {};
-            lseek(fs->img_fd, blk_num*fs->blocksize + offset, SEEK_SET);
-            read(fs->img_fd, &entry.inode, 4);
+            
+			lseek(fs->img_fd, blk_num*fs->blocksize + offset, SEEK_SET);
+            read(fs->img_fd, &entry, 8);
             if (entry.inode == 0) {
                 break;
             }
-
-            read(fs->img_fd, &entry.rec_len, 2);
-            read(fs->img_fd, &entry.name_len, 1);
-            read(fs->img_fd, &entry.file_type, 1);
-            read(fs->img_fd, name, entry.name_len);
+            
+			read(fs->img_fd, name, entry.name_len);
             offset += entry.rec_len;
 
             strcpy(dirs[dir_count], name);
@@ -232,10 +233,10 @@ char** list_dir(const char *path)
                     return NULL;
 
                 for (int j = dir_count ; j < dir_count+DIR_CAPACITY; j++) {
-                    dirs[j] = calloc(256, sizeof(char));
+                    dirs[j] = calloc(MAX_PATH_LEN+1, sizeof(char));
                     if (dirs[j] == NULL)
                         return NULL;
-                    add_pointer((void*)dirs[j]);
+                    //add_pointer((void*)(dirs[j]));
                 }
 
             }
