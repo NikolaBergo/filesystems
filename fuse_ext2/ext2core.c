@@ -2,17 +2,35 @@
 
 #define DIR_CAPACITY 100
 #define POINTERS_CAPACITY 200
+#define MAX_PATH_LEN 255
+
 static ext2 *fs;
-void *pointers;
+static void *pointers;
+static int pointers_count = 0;
 
 ext2_inode* search_file(ext2_inode* root, const char *path);
 ext2_inode* find_file(const char *path);
-size_t read_from(ext2_inode *inode, char *buf, size_t size, off_t offset);
+size_t read_file(ext2_inode *inode, char *buf, size_t size, off_t offset);
+
+void add_pointer(void* pointer)
+{
+    if (pointers_count % POINTERS_CAPACITY == (POINTERS_CAPACITY-1)) {
+        void* new_pointers = realloc(pointers, pointers_count+POINTERS_CAPACITY);
+        if (new_pointers == NULL)
+            return;
+        pointers = new_pointers;
+    }
+
+    pointers[pointers_count] = pointer;
+    pointers_count++;
+}
 
 // initialize fs struct
 int init_ext2_core(int img_fd) 
 {
-	fs = (ext2*) calloc(1, sizeof(ext2));
+    pointers = calloc(POINTERS_CAPACITY, sizeof(void*));
+
+    fs = (ext2*) calloc(1, sizeof(ext2));
 	fs->first_sb = (ext2_sb*) calloc(1, sizeof(ext2_sb));
 
 	lseek(img_fd, SB_OFFSET, SEEK_SET);
@@ -55,21 +73,29 @@ int init_ext2_core(int img_fd)
 	return 0;
 }
 
+// frees memory on unmount
 void release_resources()
 {
 	close(fs->img_fd);
 	free(fs->first_sb);
 	free(fs->root);
 	free(fs);
+	for (int i = 0; i < pointers_count; i++) {
+	    free(pointers[i]);
+	}
 }
 
 ext2_inode* read_inode(int inonum)
 {
     int index = (inonum - 1) % fs->inodes_per_group;
     ext2_inode *ret = (ext2_inode*) calloc(1, sizeof(ext2_inode));
+    if (ret == NULL) {
+        return ret;
+    }
+
+    add_pointer((void*)ret);
     lseek(fs->img_fd, fs->inode_table_offset+index*fs->inode_size, SEEK_SET);
     read(fs->img_fd, ret, sizeof(ext2_inode));
-	fprintf(stderr, "read inode %0x\n", ret);
     return ret;
 }
 
@@ -103,8 +129,9 @@ ext2_inode* search_file(ext2_inode* root, const char *path)
 		last_step = 1;
 	}
 
-	if (!S_ISDIR(root->i_mode))
-	    return NULL;
+	if (!S_ISDIR(root->i_mode)) {
+        return (ext2_inode*)-1;
+    }
 
 	int n = 0;
 	int name_len = 0;
@@ -120,14 +147,12 @@ ext2_inode* search_file(ext2_inode* root, const char *path)
 	    while (offset < fs->blocksize) {
 	        char read_name[256] = {};
 	        lseek(fs->img_fd, blk_num*fs->blocksize + offset, SEEK_SET);
-	        read(fs->img_fd, &entry.inode, 4);
-	        if (entry.inode == 0) {
-	            break;
-	        }
-	        read(fs->img_fd, &entry.rec_len, 2);
-	        read(fs->img_fd, &entry.name_len, 1);
-	        read(fs->img_fd, &entry.file_type, 1);
-	        read(fs->img_fd, read_name, entry.name_len);
+	        read(fs->img_fd, &entry, 8);
+            if (entry.inode == 0) {
+                break;
+            }
+
+            read(fs->img_fd, read_name, entry.name_len);
 	        offset += entry.rec_len;
 
 	        if (strcmp(read_name, name) == 0) {
@@ -159,16 +184,18 @@ char** list_dir(const char *path)
         return NULL;
 
     if (!S_ISDIR(dir->i_mode))
-        return NULL;
+        return (char**)-1;
 
     char** dirs = (char**) calloc(DIR_CAPACITY, sizeof(char*));
     if (dirs == NULL)
         return NULL;
+    add_pointer((void*)dirs);
 		
     for (int i = 0; i < DIR_CAPACITY; i++) {
         dirs[i] = (char*) calloc(256, sizeof(char));
         if (dirs[i] == NULL)
             return NULL;
+        add_pointer((void*)dirs[i]);
     }
 
     int name_len = 0;
@@ -208,6 +235,7 @@ char** list_dir(const char *path)
                     dirs[j] = calloc(256, sizeof(char));
                     if (dirs[j] == NULL)
                         return NULL;
+                    add_pointer((void*)dirs[j]);
                 }
 
             }
@@ -219,7 +247,7 @@ char** list_dir(const char *path)
     return dirs;
 }
 
-size_t read_from(ext2_inode *inode, char *buf, size_t size, off_t offset)
+size_t read_file(ext2_inode *inode, char *buf, size_t size, off_t offset)
 {
     int block_index = offset / fs->blocksize;
     int n = 0;

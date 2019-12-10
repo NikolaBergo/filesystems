@@ -14,12 +14,14 @@
 #include "ext2core.h"
 #include "ext2core.c"
 
-sem_t *attr;
 static int img_fd;
 
 static int ext2_getattr(const char *path, struct stat *st)
 {
 	fprintf(stderr, "GET_ATTR %s\n", path);
+	if (strlen(path) > MAX_PATH_LEN)
+	    return -ERANGE;
+
 	st->st_uid = getuid();
 	st->st_gid = getgid();
 	st->st_atime = time(NULL);
@@ -27,22 +29,21 @@ static int ext2_getattr(const char *path, struct stat *st)
 	
 	// allow only for reading
 	st->st_mode = S_IRUSR | S_IRGRP | S_IROTH;
-	
-	//sem_wait(attr);
+
 	ext2_inode *inode = find_file(path);
 	if (inode == NULL) {
 	    fprintf(stderr, "failed to get attr\n");
 	    return -ENOENT;
 	}
-	fprintf(stderr, "GET_ATTR get inode %s %0x\n", path, inode);
+    if (inode == (ext2_inode*)-1) {
+        fprintf(stderr, "failed to get attr\n");
+        return -ENOTDIR;
+    }
 
 	// disable original access flags
-	fprintf(stderr, "GET_ATTR use inode %s %0x\n", path, inode);
 	st->st_mode |= (inode->i_mode >> 12 << 12);
 	st->st_nlink = inode->i_links_count;
 	st->st_size = inode->i_size;
-	
-	//sem_post(attr);
 	
 	return 0;
 }
@@ -51,25 +52,32 @@ static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			            off_t offset, struct fuse_file_info *fi)
 {
 	fprintf(stderr, "READ_DIR %s\n", path);
+    if (strlen(path) > MAX_PATH_LEN)
+        return -ERANGE;
+
 	char **dirs = list_dir(path);
 
 	if (dirs == NULL)
 	    return -EFAULT;
+
+	if (dirs == (char**)-1)
+	    return -ENOTDIR;
 		
 	int i = 0;
 	while (dirs[i]) {
         filler(buf, dirs[i], NULL, 0);
-		//free(dirs[i]);
         i++;
     }
-	
-	//free(dirs);
+
 	return 0;
 }
 
 static int ext2_opendir(const char *path, struct fuse_file_info *fi)
 {
-	fprintf(stderr, "OPENDIR\n");
+    fprintf(stderr, "OPENDIR\n");
+    if (strlen(path) > MAX_PATH_LEN)
+        return -ERANGE;
+
     return 0;
 }
 
@@ -77,6 +85,9 @@ static int ext2_opendir(const char *path, struct fuse_file_info *fi)
 static int ext2_open(const char *path, struct fuse_file_info *fi)
 {
 	fprintf(stderr, "OPEN\n");
+    if (strlen(path) > MAX_PATH_LEN)
+        return -ERANGE;
+
 	if ((fi->flags & 3) != O_RDONLY)
 		return -EACCES;
 
@@ -87,25 +98,30 @@ static int ext2_read(const char *path, char *buf, size_t size, off_t offset,
 		             struct fuse_file_info *fi)
 {
 	fprintf(stderr, "READ\n");
-	size_t n;
+    if (strlen(path) > MAX_PATH_LEN)
+        return -ERANGE;
 
+	size_t n;
     ext2_inode *inode = find_file(path);
     if (inode == NULL)
         return -ENOENT;
+    if (inode == (ext2_inode*)-1)
+        return -ENOTDIR;
 
-    n = read_from(inode, buf, size, offset);
-	
-	//free(inode);
-	return n;
+	return read_file(inode, buf, size, offset);
 }
 
 static int ext2_release(const char *path, struct fuse_file_info *fi)
 {
+    if (strlen(path) > MAX_PATH_LEN)
+        return -ERANGE;
     return 0;
 }
 
 static int ext2_releasedir(const char *path, struct fuse_file_info *fi)
 {
+    if (strlen(path) > MAX_PATH_LEN)
+        return -ERANGE;
     return 0;
 }
 
@@ -141,10 +157,6 @@ int main(int argc, char *argv[])
 	int err = init_ext2_core(img_fd);
 	if (err < 0)
 	    return -1;
-	
-	//err = sem_init(attr, 1, 1);
-	//if (err < 0)
-	//    return -1;
 	
 	return fuse_main(argc - 1, argv, &ext2_op, NULL);
 }
