@@ -1,20 +1,25 @@
 #define FUSE_USE_VERSION 26
 
 #include <fuse.h>
+#include <sys/sem.h>
+#include <sys/ipc.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <semaphore.h>
+
 #include "ext2core.h"
 #include "ext2core.c"
 
+sem_t *attr;
 static int img_fd;
 
 static int ext2_getattr(const char *path, struct stat *st)
 {
-	fprintf(stderr, "GET_ATTR\n");
+	fprintf(stderr, "GET_ATTR %s\n", path);
 	st->st_uid = getuid();
 	st->st_gid = getgid();
 	st->st_atime = time(NULL);
@@ -23,17 +28,22 @@ static int ext2_getattr(const char *path, struct stat *st)
 	// allow only for reading
 	st->st_mode = S_IRUSR | S_IRGRP | S_IROTH;
 	
+	//sem_wait(attr);
 	ext2_inode *inode = find_file(path);
 	if (inode == NULL) {
 	    fprintf(stderr, "failed to get attr\n");
 	    return -ENOENT;
 	}
+	fprintf(stderr, "GET_ATTR get inode %s %0x\n", path, inode);
 
 	// disable original access flags
+	fprintf(stderr, "GET_ATTR use inode %s %0x\n", path, inode);
 	st->st_mode |= (inode->i_mode >> 12 << 12);
 	st->st_nlink = inode->i_links_count;
 	st->st_size = inode->i_size;
-
+	
+	//sem_post(attr);
+	
 	return 0;
 }
 
@@ -49,9 +59,11 @@ static int ext2_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	int i = 0;
 	while (dirs[i]) {
         filler(buf, dirs[i], NULL, 0);
+		//free(dirs[i]);
         i++;
     }
-
+	
+	//free(dirs);
 	return 0;
 }
 
@@ -74,6 +86,7 @@ static int ext2_open(const char *path, struct fuse_file_info *fi)
 static int ext2_read(const char *path, char *buf, size_t size, off_t offset,
 		             struct fuse_file_info *fi)
 {
+	fprintf(stderr, "READ\n");
 	size_t n;
 
     ext2_inode *inode = find_file(path);
@@ -81,7 +94,8 @@ static int ext2_read(const char *path, char *buf, size_t size, off_t offset,
         return -ENOENT;
 
     n = read_from(inode, buf, size, offset);
-
+	
+	//free(inode);
 	return n;
 }
 
@@ -93,6 +107,11 @@ static int ext2_release(const char *path, struct fuse_file_info *fi)
 static int ext2_releasedir(const char *path, struct fuse_file_info *fi)
 {
     return 0;
+}
+
+void fuse_unmount(const char* mountpoint, struct fuse_chan *f)
+{
+	release_resources();
 }
 
 static struct fuse_operations ext2_op = {
@@ -122,6 +141,10 @@ int main(int argc, char *argv[])
 	int err = init_ext2_core(img_fd);
 	if (err < 0)
 	    return -1;
+	
+	//err = sem_init(attr, 1, 1);
+	//if (err < 0)
+	//    return -1;
 	
 	return fuse_main(argc - 1, argv, &ext2_op, NULL);
 }

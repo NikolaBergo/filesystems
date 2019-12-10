@@ -1,8 +1,9 @@
 #include "ext2core.h"
 
 #define DIR_CAPACITY 100
-
+#define POINTERS_CAPACITY 200
 static ext2 *fs;
+void *pointers;
 
 ext2_inode* search_file(ext2_inode* root, const char *path);
 ext2_inode* find_file(const char *path);
@@ -54,13 +55,21 @@ int init_ext2_core(int img_fd)
 	return 0;
 }
 
+void release_resources()
+{
+	close(fs->img_fd);
+	free(fs->first_sb);
+	free(fs->root);
+	free(fs);
+}
+
 ext2_inode* read_inode(int inonum)
 {
     int index = (inonum - 1) % fs->inodes_per_group;
     ext2_inode *ret = (ext2_inode*) calloc(1, sizeof(ext2_inode));
     lseek(fs->img_fd, fs->inode_table_offset+index*fs->inode_size, SEEK_SET);
     read(fs->img_fd, ret, sizeof(ext2_inode));
-
+	fprintf(stderr, "read inode %0x\n", ret);
     return ret;
 }
 
