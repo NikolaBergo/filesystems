@@ -27,13 +27,9 @@ typedef struct proc_stat proc_stat;
 int read_process(const char *pid, proc_stat *this_proc) 
 {
 	char result_path[50] = {};
-	char stat_path[] = "/stat";
-	char proc_path[] = "/proc/";
 	unsigned long int unused;
-	
-	strcat(result_path, proc_path);
-	strcat(result_path, pid);
-	strcat(result_path, stat_path);
+
+	snprintf(result_path, "/proc/%s/stat", pid);
 	
 	FILE *f = fopen(result_path, "r");
 	if (!f) {
